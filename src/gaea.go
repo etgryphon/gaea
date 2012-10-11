@@ -10,6 +10,7 @@ import (
 	"log"
 //	"bytes"\
 	"errors"
+	"path/filepath"
 )
 
 const APP_VERSION = "0.1"
@@ -53,12 +54,17 @@ func CreateNewProject(name interface{}){
 }
 
 func GetNewImport(name string){
+  var err error
   if len(name) < 1 {
     PrintHelpCommand("In order to get a package, you must have a name")
     return
   }
   // check to see if it is present in the GOPATH
-  pkgIsThere := checkIfPackageIsPresent(name)
+  pkgIsThere,fullPath,err := checkIfPackageIsPresent(name)
+  if err != nil {
+    log.Fatalf("Local Package Verify Error:\n\t%s", err)
+  }
+  
   if !pkgIsThere {
     err := fetchExternalPackage(name)
     if err != nil {
@@ -67,7 +73,7 @@ func GetNewImport(name string){
   }
   
   // Convert package to local package
-  err := convertToLocalPackage(name)
+  err = convertToLocalPackage(fullPath, name)
   if err != nil {
     log.Fatalf("Package Conversion Error:\n\t%s", err)
   }
@@ -76,9 +82,13 @@ func GetNewImport(name string){
 /*
 	@private function to check for the presence of a local package
 */
-func checkIfPackageIsPresent(name string) (bool) {
-
-  return false
+func checkIfPackageIsPresent(name string) (bool, string, error) {
+  gopath := os.Getenv("GOPATH")
+  path := gopath+"/src/"+name+"/"
+  _, err := os.Stat(path)
+  if err == nil || os.IsExist(err) { return true, path, nil }
+  if os.IsNotExist(err) { return false, path, nil }
+  return false, path, err
 }
 
 /*
@@ -94,10 +104,19 @@ func fetchExternalPackage(name string) (error) {
   return nil
 }
 
+func convertFileToLocalUse(path string, f os.FileInfo, err error) error {
+  base := filepath.Base(path)
+  if base[0] == '.' { return filepath.SkipDir }
+  fmt.Printf("Visited: %s => Base: %s\n", path, base)
+  return nil
+} 
+
 /*
 	@private convert the local package to be used in GAE format
 */
-func convertToLocalPackage(name string) (error) {
+func convertToLocalPackage(root string, name string) (error) {
+  err := filepath.Walk(root, convertFileToLocalUse)
+  if err != nil { return err }
   return nil;
 }
 
