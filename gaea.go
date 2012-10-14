@@ -3,7 +3,7 @@ package main
 import (
     flag "github.com/ogier/pflag"
     "fmt"
-    utl "io/ioutil"
+//    utl "io/ioutil"
 	"os"
 	"strings"
 	"os/exec"
@@ -18,6 +18,14 @@ var fileCount int = 0
 var dirCount int = 0
 var fileBytesRead int = 0
 var fileBytesWritten int = 0
+
+/*
+	Strings for messaging...
+*/
+var helpMessage string = 
+`This is a test
+With lots of Lines
+To print out...`
 
 // The flag package provides a default help printer via -h switch
 var versionFlag *bool = flag.Bool("v", false, "Print the version number.")
@@ -40,11 +48,10 @@ func main() {
 }
 
 func PrintHelpCommand(preamble interface{}) {
-  t, _ := utl.ReadFile("templates/help.tmpl")
   if preamble != nil {
-  	fmt.Fprintf(os.Stdout, "%s\n%s\n", preamble, t)
+  	fmt.Fprintf(os.Stdout, "%s\n%s\n", preamble, helpMessage)
   } else {
-  	fmt.Fprintf(os.Stdout, "%s\n", t)
+  	fmt.Fprintf(os.Stdout, "%s\n", helpMessage)
   }
   
 }
