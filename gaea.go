@@ -19,14 +19,6 @@ var dirCount int = 0
 var fileBytesRead int = 0
 var fileBytesWritten int = 0
 
-/*
-	Strings for messaging...
-*/
-var helpMessage string = 
-`This is a test
-With lots of Lines
-To print out...`
-
 // The flag package provides a default help printer via -h switch
 var versionFlag *bool = flag.Bool("v", false, "Print the version number.")
 
@@ -190,12 +182,16 @@ func convertToLocalPackage(root string, name string) (error) {
   fmt.Println("\n\nTransfering GOPATH package ["+name+"] to local use...")
   err := filepath.Walk(root, convertFileToLocalUse)
   if err != nil { return err }
-  fmt.Println("\nTotals")
-  fmt.Println("\tDirectories: ", dirCount)
-  fmt.Println("\tFiles: ", fileCount)
-  fmt.Println("\tBytes Read: ", fileBytesRead)
-  fmt.Println("\tBytes Written: ", fileBytesWritten)
-  fmt.Printf("\nTo Use it in your Google App Engine program:\n\n\timport \"./pkgs/%s\"\n\n", name)
+  printOutTransferInformation(name)
   return nil;
+}
+
+func printOutTransferInformation(name string){
+  fmt.Fprintln(os.Stdout, "\nTotals")
+  fmt.Fprintln(os.Stdout, "\tDirectories: ", dirCount)
+  fmt.Fprintln(os.Stdout, "\tFiles: ", fileCount)
+  fmt.Fprintln(os.Stdout, "\tBytes Read: ", fileBytesRead)
+  fmt.Fprintln(os.Stdout, "\tBytes Written: ", fileBytesWritten)
+  fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \"./pkgs/%s\"\n\n", name)
 }
 
