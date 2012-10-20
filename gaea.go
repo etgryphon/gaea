@@ -2,18 +2,21 @@ package main
 
 import (
     flag "github.com/ogier/pflag"
+    su "github.com/etgryphon/stringUp"
     "fmt"
 //    utl "io/ioutil"
+	"bufio"
 	"os"
 	"strings"
 	"os/exec"
 	"log"
-//	"bytes"\
+//	"bytes"
 	"errors"
 	"path/filepath"
 )
 
 const APP_VERSION = "0.1"
+const inputDelim = '\n'
 var fileCount int = 0
 var dirCount int = 0
 var fileBytesRead int = 0
@@ -24,7 +27,7 @@ var versionFlag *bool = flag.Bool("v", false, "Print the version number.")
 
 func main() {
     flag.Parse() // Scan the arguments list 
-
+	fmt.Fprintln(os.Stdout, logo)
     if *versionFlag {
         fmt.Println("Version:", APP_VERSION)
         return
@@ -48,11 +51,23 @@ func PrintHelpCommand(preamble interface{}) {
   
 }
 
-func CreateNewProject(name interface{}){
-  if name == nil {
-  	name = "blue"
+func CreateNewProject(name string){
+  var err error
+  if len(name) < 1 {
+    r := bufio.NewReader(os.Stdin)
+
+    fmt.Fprintf(os.Stdout, "Please Enter a Name for your GAE project: ")
+    name, err = r.ReadString(inputDelim)
+    if err != nil {
+        fmt.Println(err)
+        os.Exit(1)
+    }
+    name = strings.Trim(name, " \n")
+    fmt.Fprintf(os.Stdout, "Reading: [%s]\n", name)
   }
-  fmt.Fprintf(os.Stdout, "Creating a New Project...[%s]\n", name)
+  camelName := su.CamelCase(name)
+  fmt.Fprintf(os.Stdout, "Creating a New Project...[%s] in directory: .\\%s\n", name, camelName)
+//  os.Mkdir("./"+camelName)
 }
 
 func GetNewImport(name string){
