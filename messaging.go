@@ -3,15 +3,13 @@ package main
 /*
 	Strings for messaging...
 */
-var helpMessage string = 
-`
+const HELP_MESSAGE string = `
 This is a test
 With lots of Lines
 To print out...
 `
 
-var logo string = 
-`
+const LOGO = `
 #########################################################################
            .oooooo.          .o.       oooooooooooo        .o.
           d8P'  'Y8b        .888.      '888'     '8       .888.
@@ -23,14 +21,39 @@ var logo string =
 #########################################################################
 `
 
-var ymlTemplate string = 
-`
-application: %s
+const YML_TEMPLATE = `application: {{.}}
 version: 1
 runtime: go
 api_version: go1
 
 handlers:
+- url: /stylesheets
+  static_dir: public/stylesheets
+
+- url: /(.*\.(gif|png|jpg))
+  static_files: public/images/\1
+  upload: public/images/(.*\.(gif|png|jpg))
+
+- url: /(.*\.js)
+  static_files: public/js/\1
+  upload: public/js/(.*\.js)
+  
 - url: /.*
   script: _go_app
- `
+`
+ 
+const BASE_GAE_APP_TEMPLATE = `package	{{.}}
+
+import (
+  "net/http"
+  "fmt"
+)
+
+func init() {
+  http.HandleFunc("/", handler)
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+  fmt.Fprintf(w, "Hello, World!")
+}
+`

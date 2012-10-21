@@ -13,6 +13,7 @@ import (
 //	"bytes"
 	"errors"
 	"path/filepath"
+	"html/template"
 )
 
 const APP_VERSION = "0.1"
@@ -27,7 +28,7 @@ var versionFlag *bool = flag.Bool("v", false, "Print the version number.")
 
 func main() {
     flag.Parse() // Scan the arguments list 
-	fmt.Fprintln(os.Stdout, logo)
+	fmt.Fprintln(os.Stdout, LOGO)
     if *versionFlag {
         fmt.Println("Version:", APP_VERSION)
         return
@@ -44,30 +45,90 @@ func main() {
 
 func PrintHelpCommand(preamble interface{}) {
   if preamble != nil {
-  	fmt.Fprintf(os.Stdout, "%s\n%s\n", preamble, helpMessage)
+  	fmt.Fprintf(os.Stdout, "%s\n%s\n", preamble, HELP_MESSAGE)
   } else {
-  	fmt.Fprintf(os.Stdout, "%s\n", helpMessage)
+  	fmt.Fprintf(os.Stdout, "%s\n", HELP_MESSAGE)
   }
   
 }
 
 func CreateNewProject(name string){
-  var err error
   if len(name) < 1 {
-    r := bufio.NewReader(os.Stdin)
-
-    fmt.Fprintf(os.Stdout, "Please Enter a Name for your GAE project: ")
-    name, err = r.ReadString(inputDelim)
-    if err != nil {
-        fmt.Println(err)
-        os.Exit(1)
-    }
-    name = strings.Trim(name, " \n")
-    fmt.Fprintf(os.Stdout, "Reading: [%s]\n", name)
+	name = readProjectName()
   }
   camelName := su.CamelCase(name)
-  fmt.Fprintf(os.Stdout, "Creating a New Project...[%s] in directory: .\\%s\n", name, camelName)
-//  os.Mkdir("./"+camelName)
+  projPath := camelName+"Project"
+  fmt.Fprintf(os.Stdout, "Creating a New Project...[%s] in directory: %s\n", camelName, projPath)
+  createGAEDirectoryStructure(projPath, camelName)
+}
+
+func readProjectName()(name string){
+  r := bufio.NewReader(os.Stdin)
+
+  fmt.Fprintf(os.Stdout, "Please Enter a Name for your GAE project: ")
+  name, err := r.ReadString(inputDelim)
+  if err != nil {
+    fmt.Println(err)
+    os.Exit(1)
+  }
+  name = strings.Trim(name, " \n")
+  return name
+}
+
+func createGAEDirectoryStructure(path string, name string){
+  var err error
+  
+  // Create Base Project Directory
+  err = createProjectDirectory("./", path, 1)
+  if err != nil { panic(err) }
+  // Create app.yml
+  err = createProjectFile( name, "./"+path+"/", "app.yml", YML_TEMPLATE, 2)
+  if err != nil { panic(err) }
+  
+  // Create the main folder
+  err = createProjectDirectory("./"+path+"/", name, 2)
+  if err != nil { panic(err) }
+  err = createProjectFile( name, "./"+path+"/"+name+"/", name+".go", BASE_GAE_APP_TEMPLATE, 3)
+  if err != nil { panic(err) }
+  
+  // Create Public Folder
+  err = createProjectDirectory("./"+path+"/", "public", 2)
+  if err != nil { panic(err) }
+  // Create Public stylesheets folder
+  err = createProjectDirectory("./"+path+"/public/", "stylesheets", 3)
+  if err != nil { panic(err) }
+  // Create Public Images Folder
+  err = createProjectDirectory("./"+path+"/public/", "images", 3)
+  if err != nil { panic(err) }
+  // Create Public Javascript Folder
+  err = createProjectDirectory("./"+path+"/public/", "js", 3)
+  if err != nil { panic(err) }
+  
+}
+
+func createProjectDirectory(path, name string, level int)(error){
+  fullPath := path+name
+  fmtStr := fmt.Sprintf("%%%ds\n", 1+len(name)+(level*2) )
+  exists, err := checkIfPathExists(fullPath)
+  if !exists {
+  	fmt.Fprintf(os.Stdout, fmtStr, "+"+name)
+  	err = os.Mkdir(fullPath, 0755)
+  } else {
+  	fmt.Fprintf(os.Stdout, fmtStr, "-"+name) 	
+  }
+  return err
+}
+
+func createProjectFile(pkgName,path,name,tmplInstance string, level int)(error){
+  fmtStr := fmt.Sprintf("%%%ds\n", 1+len(name)+(level*2) )
+  fileIO, err := os.Create(path+name)
+  tmpl, err := template.New(name).Parse(tmplInstance)
+  if err != nil { panic(err) }
+  err = tmpl.Execute(fileIO, pkgName)
+  if err != nil { panic(err) }
+  fileIO.Close()
+  fmt.Fprintf(os.Stdout, fmtStr, "+"+name)
+  return err
 }
 
 func GetNewImport(name string){
