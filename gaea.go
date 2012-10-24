@@ -4,7 +4,7 @@ import (
     flag "github.com/ogier/pflag"
     su "github.com/etgryphon/stringUp"
     "fmt"
-//    utl "io/ioutil"
+    "io"
 	"bufio"
 	"os"
 	"strings"
@@ -36,23 +36,23 @@ func main() {
     cmd := flag.Arg(0)
     name := flag.Arg(1)
     switch cmd {
-    	case "help": PrintHelpCommand(nil)
-    	case "init": CreateNewProject(name)
-    	case "get": GetNewImport(name)
-    	default: PrintHelpCommand("Do Not Recognize command: ["+cmd+"]")
+    	case "help": printHelpCommand(nil)
+    	case "init": createNewProject(name)
+    	case "get": getNewImport(name)
+    	case "run": runDevelopmentServer(name)
+    	default: printHelpCommand("Do Not Recognize command: ["+cmd+"]")
     }  
 }
 
-func PrintHelpCommand(preamble interface{}) {
+func printHelpCommand(preamble interface{}) {
   if preamble != nil {
   	fmt.Fprintf(os.Stdout, "%s\n%s\n", preamble, HELP_MESSAGE)
   } else {
   	fmt.Fprintf(os.Stdout, "%s\n", HELP_MESSAGE)
-  }
-  
+  } 
 }
 
-func CreateNewProject(name string){
+func createNewProject(name string){
   if len(name) < 1 {
 	name = readProjectName()
   }
@@ -131,10 +131,10 @@ func createProjectFile(pkgName,path,name,tmplInstance string, level int)(error){
   return err
 }
 
-func GetNewImport(name string){
+func getNewImport(name string){
   var err error
   if len(name) < 1 {
-    PrintHelpCommand("In order to get a package, you must have a name")
+    printHelpCommand("In order to get a package, you must have a name")
     return
   }
   // check to see if it is present in the GOPATH
@@ -269,5 +269,47 @@ func printOutTransferInformation(name string){
   fmt.Fprintln(os.Stdout, "\tBytes Read: ", fileBytesRead)
   fmt.Fprintln(os.Stdout, "\tBytes Written: ", fileBytesWritten)
   fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \"./pkgs/%s\"\n\n", name)
+}
+
+func runDevelopmentServer(path string){
+  if len(path) < 1 {
+	printHelpCommand("A GAEA project directory must be specified:")
+	return
+  }
+  
+  verified := verifyAppServerExists()
+  if (!verified){ return }
+  fmt.Fprintln(os.Stdout, "Running Dev App Server through GAEA...")
+  cmd := exec.Command("dev_appserver.py", path)
+  stdout, err := cmd.StdoutPipe()
+  if err != nil {
+    log.Fatal(err)
+  }
+  stderr, err := cmd.StderrPipe()
+  if err != nil {
+    log.Fatal(err)
+  }
+  if err := cmd.Start(); err != nil {
+    log.Fatal(err)
+  }
+  go io.Copy(os.Stdout, stdout)
+  go io.Copy(os.Stderr, stderr)
+  if err := cmd.Wait(); err != nil {
+    log.Fatal(err)
+  }
+}
+
+func verifyAppServerExists()(bool){
+  cmd := exec.Command("which", "dev_appserver.py")
+  output,err := cmd.CombinedOutput()
+  if err != nil {
+    fmt.Fprintf(os.Stdout, "Error: %s\n", string(output))
+    return false
+  }
+  if len(output) == 0 {
+  	fmt.Fprintln(os.Stdout, "Error: Can't find dev_appserver.py in your PATH")
+    return false
+  }
+  return true
 }
 
