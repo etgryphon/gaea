@@ -1,6 +1,6 @@
 # Gaea: 
 ### _Give birth to amazing Google App Engine (GAE) projects for Go_
-## Version: *ALPHA*
+_*Version: ALPHA*_
 
 ## The Problem
 
