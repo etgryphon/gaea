@@ -4,9 +4,18 @@ package main
 	Strings for messaging...
 */
 const HELP_MESSAGE string = `
-This is a test
-With lots of Lines
-To print out...
+Gaea is a tool for managing and creating GAE code written in Golang.
+
+Usage:
+
+	gaea command [arguments]
+
+The commands are:
+
+    init        create an project from scratch
+    run         run the GAE dev_appserver.py
+    help        printout this help message
+    get         fetch a Golang Package for use locally
 `
 
 const LOGO = `
