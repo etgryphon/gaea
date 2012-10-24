@@ -1,6 +1,8 @@
 # Gaea: 
 ### _Give birth to amazing Google App Engine (GAE) projects for Go_
-_*Version: ALPHA*_
+
+## Status
+This is very much a dev-preview and is in __ALPHA__.  I haven't tested this extensively, just want to see if it is helpful to other people.  I am still currently working on this. 
 
 ## The Problem
 
@@ -20,6 +22,51 @@ This function will create completely workable project that will run and can be d
 
 This function runs the `dev_appserver.py` on the `<path>`
   
+`gaea get <package_name>`
+
+This function works just like `go get`, but it creates a local package for use in GAE projects.  This is one of the most frustrating parts of writing GAE projects with Golang.  This is supposed to make it a little more transparent to the user and make it much less manual intensive.
+
+`gaea help`
+
+A help message for the user...
+
+```plaintext
+#########################################################################
+           .oooooo.          .o.       oooooooooooo        .o.
+          d8P'  'Y8b        .888.      '888'     '8       .888.
+         888               .8"888.      888              .8"888.
+         888              .8\' '888.     888oooo8       .8' '888.
+         888     ooooo   .88ooo8888.    888     "      .88ooo8888.
+         '88.    .88'   .8'     '888.   888       o   .8'     '888.
+          'Y8bood8P'   o88o     o8888o o888ooooood8  o88o     o8888o'
+#########################################################################
+
+
+Gaea is a tool for managing and creating GAE code written in Golang.
+
+Usage:
+
+	gaea command [arguments]
+
+The commands are:
+
+    init        create an project from scratch
+    run         run the GAE dev_appserver.py
+    help        printout this help message
+    get         fetch a Golang Package for use locally
+
+```
+
+## Installation
+
+`go get github.com/etgryphon/gaea`
+
+and then
+
+`go install github.com/etgryphon/gaea`
+
+This should install it into your `$GOPATH` and now you should be able to run it from the commandline...
+
 ## License: FreeBSD
 ```plaintext
 Copyright (c) 2012, Evin T. Grano
