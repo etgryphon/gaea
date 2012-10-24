@@ -50,7 +50,7 @@ handlers:
 - url: /.*
   script: _go_app
 `
- 
+
 const BASE_GAE_APP_TEMPLATE = `package	{{.}}
 
 import (

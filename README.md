@@ -2,7 +2,7 @@
 ### _Give birth to amazing Google App Engine (GAE) projects for Go_
 
 ## Status
-This is very much a dev-preview and is in __ALPHA__.  I haven't tested this extensively, just want to see if it is helpful to other people.  I am still currently working on this. 
+This is very much a dev-preview and is in __ALPHA__.  I haven't tested this extensively, just want to see if it is helpful to other people.  I am still currently working on this. It assumes a Linux file system...will abstract to Windows soon...
 
 ## The Problem
 
@@ -60,10 +60,6 @@ The commands are:
 ## Installation
 
 `go get github.com/etgryphon/gaea`
-
-and then
-
-`go install github.com/etgryphon/gaea`
 
 This should install it into your `$GOPATH` and now you should be able to run it from the commandline...
 
