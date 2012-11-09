@@ -61,7 +61,7 @@ The commands are:
 
 `go get github.com/etgryphon/gaea`
 
-This should install it into your `$GOPATH` and now you should be able to run it from the commandline...
+This should install it into your `$GOPATH` and now you should be able to run it from the command line...
 
 ## License: FreeBSD
 ```plaintext
