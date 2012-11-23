@@ -27,6 +27,9 @@ var fileBytesWritten int = 0
 // The flag package provides a default help printer via -h switch
 var versionFlag *bool = flag.Bool("v", false, "Print the version number.")
 
+// Files
+var FileSep = string(os.PathSeparator)
+
 func main() {
 	flag.Parse() // Scan the arguments list 
 	fmt.Fprintln(os.Stdout, LOGO)
@@ -144,13 +147,14 @@ func createProjectDirectory(path, name string, level int) error {
 func createProjectFile(pkgName, path, name, tmplInstance string, level int) error {
 	fmtStr := fmt.Sprintf("%%%ds\n", 1+len(name)+(level*2))
 	fileIO, err := os.Create(path + name)
+	fmt.Fprintln(os.Stdout, name)
 	tmpl, err := template.New(name).Parse(tmplInstance)
 	if err != nil {
-		panic(err)
+	  panic(err)
 	}
 	err = tmpl.Execute(fileIO, pkgName)
 	if err != nil {
-		panic(err)
+	  panic(err)
 	}
 	fileIO.Close()
 	fmt.Fprintf(os.Stdout, fmtStr, "+"+name)
@@ -164,11 +168,7 @@ func getNewImport(name string) {
 		return
 	}
 	// check to see if it is present in the GOPATH
-	pkgIsThere, fullPath, err := checkIfPackageIsPresent(name)
-	if err != nil {
-		log.Fatalf("Local Package Verify Error:\n\t%s", err)
-	}
-
+	pkgIsThere, fullPath := checkIfPackageIsPresent(name)
 	if !pkgIsThere {
 		err := fetchExternalPackage(name)
 		if err != nil {
@@ -186,12 +186,23 @@ func getNewImport(name string) {
 /*
 	@private function to check for the presence of a local package
 */
-func checkIfPackageIsPresent(name string) (bool, string, error) {
-	gopath := os.Getenv("GOPATH")
-	path := gopath + "/src/" + name + "/"
-	formattedPath := filepath.FromSlash(path)
-	doesExist, err := checkIfPathExists(formattedPath)
-	return doesExist, formattedPath, err
+func checkIfPackageIsPresent(name string) (bool, string) {
+    var (
+      doesExist bool = false
+      formattedPath string
+    )
+	gopaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
+	fmtString := fmt.Sprintf("%ssrc%s", FileSep, FileSep)
+	for _,x := range gopaths {
+	  path := x + fmtString + name + FileSep
+	  formattedPath := filepath.FromSlash(path)
+	  there, _ := checkIfPathExists(formattedPath)
+	  if (there) {
+	  	doesExist = true
+	  	break
+	  }
+	}
+	return doesExist, formattedPath
 }
 
 /*
@@ -226,9 +237,9 @@ func convertFileToLocalUse(path string, f os.FileInfo, err error) error {
 	if base[0] == '.' {
 		return filepath.SkipDir
 	}
-	gopath := os.Getenv("GOPATH") + "/src"
+	gopath := os.Getenv("GOPATH") + FileSep + "src"
 	curDir, _ := os.Getwd()
-	newPath := strings.Replace(path, gopath, curDir+"/pkgs", -1)
+	newPath := strings.Replace(path, gopath, curDir + FileSep + "pkgs", -1)
 
 	// Now, check what the item is:
 	info, err := os.Stat(path)
