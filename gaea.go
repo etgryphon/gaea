@@ -93,7 +93,8 @@ func createGAEDirectoryStructure(path string, name string) {
 		panic(err)
 	}
 	// Create app.yml
-	err = createProjectFile(name, "./"+path+"/", "app.yml", YML_TEMPLATE, 2)
+	fmt.Fprintln(os.Stdout, "dir: ", "."+FileSep+path+FileSep)
+	err = createProjectFile(name, "."+FileSep+path+FileSep, "app.yml", YML_TEMPLATE, 2)
 	if err != nil {
 		panic(err)
 	}
