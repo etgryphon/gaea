@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	//	"bytes"
 	"errors"
 	"html/template"
 	"path/filepath"
@@ -319,7 +318,7 @@ func printOutTransferInformation(name string) {
 	fmt.Fprintln(os.Stdout, "\tFiles: ", fileCount)
 	fmt.Fprintln(os.Stdout, "\tBytes Read: ", fileBytesRead)
 	fmt.Fprintln(os.Stdout, "\tBytes Written: ", fileBytesWritten)
-	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \"./pkgs/%s\"\n\n", name)
+	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \"", ".%spkgs%s%s\"\n\n", FileSep, FileSep, name)
 }
 
 func runDevelopmentServer(path string) {
