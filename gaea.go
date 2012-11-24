@@ -110,26 +110,25 @@ func createGAEDirectoryStructure(path string, name string) {
 	}
 
 	// Create Public Folder
-	err = createProjectDirectory("./"+path+"/", "public", 2)
+	err = createProjectDirectory(projRoot, "public", 2)
 	if err != nil {
 		panic(err)
 	}
 	// Create Public stylesheets folder
-	err = createProjectDirectory("./"+path+"/public/", "stylesheets", 3)
+	err = createProjectDirectory(projRoot+"public"+FileSep, "stylesheets", 3)
 	if err != nil {
 		panic(err)
 	}
 	// Create Public Images Folder
-	err = createProjectDirectory("./"+path+"/public/", "images", 3)
+	err = createProjectDirectory(projRoot+"public"+FileSep, "images", 3)
 	if err != nil {
 		panic(err)
 	}
 	// Create Public Javascript Folder
-	err = createProjectDirectory("./"+path+"/public/", "js", 3)
+	err = createProjectDirectory(projRoot+"public"+FileSep, "js", 3)
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 func createProjectDirectory(path, name string, level int) error {
