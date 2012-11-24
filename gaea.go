@@ -88,23 +88,23 @@ func createGAEDirectoryStructure(path string, name string) {
 	var err error
 
 	// Create Base Project Directory
-	err = createProjectDirectory("./", path, 1)
+	err = createProjectDirectory("."+FileSep, path, 1)
 	if err != nil {
 		panic(err)
 	}
 	// Create app.yml
-	fmt.Fprintln(os.Stdout, "dir: ", "."+FileSep+path+FileSep)
-	err = createProjectFile(name, "."+FileSep+path+FileSep, "app.yml", YML_TEMPLATE, 2)
+	projRoot := "."+FileSep+path+FileSep
+	err = createProjectFile(name, projRoot, "app.yml", YML_TEMPLATE, 2)
 	if err != nil {
 		panic(err)
 	}
 
 	// Create the main folder
-	err = createProjectDirectory("./"+path+"/", name, 2)
+	err = createProjectDirectory(projRoot, name, 2)
 	if err != nil {
 		panic(err)
 	}
-	err = createProjectFile(name, "./"+path+"/"+name+"/", name+".go", BASE_GAE_APP_TEMPLATE, 3)
+	err = createProjectFile(name, projRoot+name+FileSep, name+".go", BASE_GAE_APP_TEMPLATE, 3)
 	if err != nil {
 		panic(err)
 	}
@@ -148,7 +148,6 @@ func createProjectDirectory(path, name string, level int) error {
 func createProjectFile(pkgName, path, name, tmplInstance string, level int) error {
 	fmtStr := fmt.Sprintf("%%%ds\n", 1+len(name)+(level*2))
 	fileIO, err := os.Create(path + name)
-	fmt.Fprintln(os.Stdout, name)
 	tmpl, err := template.New(name).Parse(tmplInstance)
 	if err != nil {
 	  panic(err)
