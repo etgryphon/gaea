@@ -36,12 +36,12 @@ runtime: go
 api_version: go1
 
 handlers:
-- url: /stylesheets
-  static_dir: public/stylesheets
+- url: /css
+  static_dir: public/css
 
 - url: /(.*\.(gif|png|jpg))
-  static_files: public/images/\1
-  upload: public/images/(.*\.(gif|png|jpg))
+  static_files: public/img/\1
+  upload: public/img/(.*\.(gif|png|jpg))
 
 - url: /(.*\.js)
   static_files: public/js/\1

@@ -190,10 +190,11 @@ func checkIfPackageIsPresent(name string) (bool, string) {
       formattedPath string
     )
 	gopaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
-	fmtString := fmt.Sprintf("%ssrc%s", FileSep, FileSep)
+	fmtString := FileSep+"src"+FileSep
 	for _,x := range gopaths {
 	  path := x + fmtString + name + FileSep
-	  formattedPath := filepath.FromSlash(path)
+	  formattedPath = filepath.FromSlash(path)
+	  fmt.Fprintln(os.Stdout, "dir > ", formattedPath)
 	  there, _ := checkIfPathExists(formattedPath)
 	  if (there) {
 	  	doesExist = true
@@ -318,7 +319,7 @@ func printOutTransferInformation(name string) {
 	fmt.Fprintln(os.Stdout, "\tFiles: ", fileCount)
 	fmt.Fprintln(os.Stdout, "\tBytes Read: ", fileBytesRead)
 	fmt.Fprintln(os.Stdout, "\tBytes Written: ", fileBytesWritten)
-	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \"", ".%spkgs%s%s\"\n\n", FileSep, FileSep, name)
+	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \".%spkgs%s%s\"\n\n", FileSep, FileSep, name)
 }
 
 func runDevelopmentServer(path string) {
