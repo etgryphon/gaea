@@ -13,6 +13,9 @@ import (
 	"errors"
 	"html/template"
 	"path/filepath"
+	"go/parser"
+	"go/token"
+	"bytes"
 )
 
 const APP_VERSION = "0.1"
@@ -166,7 +169,7 @@ func getNewImport(name string) {
 		return
 	}
 	// check to see if it is present in the GOPATH
-	pkgIsThere, fullPath := checkIfPackageIsPresent(name)
+	pkgIsThere, srcPath, _ := checkIfPackageIsPresent(name)
 	if !pkgIsThere {
 		err := fetchExternalPackage(name)
 		if err != nil {
@@ -175,7 +178,7 @@ func getNewImport(name string) {
 	}
 
 	// Convert package to local package
-	err = convertToLocalPackage(fullPath, name)
+	err = convertToLocalPackage(srcPath, name)
 	if err != nil {
 		log.Fatalf("Package Conversion Error:\n\t%s", err)
 	}
@@ -184,14 +187,12 @@ func getNewImport(name string) {
 /*
 	@private function to check for the presence of a local package
 */
-func checkIfPackageIsPresent(name string) (bool, string) {
-    var (
-      doesExist bool = false
-      formattedPath string
-    )
+func checkIfPackageIsPresent(name string) (doesExist bool, srcPath, formattedPath string) {
+  doesExist = false
 	gopaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
 	fmtString := FileSep+"src"+FileSep
 	for _,x := range gopaths {
+	  srcPath = x+FileSep+"src"
 	  path := x + fmtString + name + FileSep
 	  formattedPath = filepath.FromSlash(path)
 	  fmt.Fprintln(os.Stdout, "dir > ", formattedPath)
@@ -201,7 +202,7 @@ func checkIfPackageIsPresent(name string) (bool, string) {
 	  	break
 	  }
 	}
-	return doesExist, formattedPath
+	return 
 }
 
 /*
@@ -231,14 +232,14 @@ func fetchExternalPackage(name string) error {
 	return nil
 }
 
-func convertFileToLocalUse(path string, f os.FileInfo, err error) error {
+func convertFileToLocalUse(gopath, path string, f os.FileInfo, err error) error {
 	base := filepath.Base(path)
 	if base[0] == '.' {
 		return filepath.SkipDir
 	}
-	gopath := os.Getenv("GOPATH") + FileSep + "src"
 	curDir, _ := os.Getwd()
-	newPath := strings.Replace(path, gopath, curDir + FileSep + "pkgs", -1)
+	fmt.Fprintln(os.Stdout, "Path >", path)
+	newPath := strings.Replace(path, gopath, curDir+FileSep+"pkgs"+FileSep, -1)
 
 	// Now, check what the item is:
 	info, err := os.Stat(path)
@@ -253,7 +254,7 @@ func convertFileToLocalUse(path string, f os.FileInfo, err error) error {
 		}
 	} else {
 		fileCount += 1
-		err = translateFile(path, newPath)
+		err = translateFile(gopath, path, newPath)
 	}
 	return nil
 }
@@ -261,7 +262,7 @@ func convertFileToLocalUse(path string, f os.FileInfo, err error) error {
 /*
 	@private function that will copy and translate files to local use
 */
-func translateFile(source string, dest string) error {
+func translateFile(gopath, source, dest string) error {
 	s, err := os.Open(source)
 	if err != nil {
 		return nil
@@ -277,25 +278,48 @@ func translateFile(source string, dest string) error {
 	sInfo, _ := s.Stat()
 	buffer := make([]byte, sInfo.Size())
 
-	readsize, err := s.Read(buffer)
-	fileBytesRead += readsize
+	_, err = s.Read(buffer)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not write read from %s", source))
 	}
+	
+  // If it is a go file then we have to re-write the imports to 
+  // have the correct '/pkg' prefix
+	if (filepath.Ext(source) == ".go"){
+		fset := token.NewFileSet()	// positions are relative to fset
+	
+		// Parse the file containing this very example
+		// but stop after processing the imports.
+		f, err := parser.ParseFile(fset, "", buffer, parser.ImportsOnly)
+		if err != nil {
+			fmt.Println(err)
+		}
+	
+		// Print the imports from the file's AST.
+		fmt.Println("File: ", source)
+		
+		for _,s := range f.Imports {
+		  end := len(s.Path.Value)-2
+			pkg := s.Path.Value[1:end]
+			found, srcPath, _ := checkIfPackageIsPresent(pkg)
+			if found {
+				err = convertToLocalPackage(srcPath, pkg)
+				if err != nil {
+					log.Fatalf("Internal Package Conversion Error:\n\t%s", err)
+				}
+				idx := bytes.Index(buffer, []byte(pkg))
+				newBuffer := make([]byte, len(buffer)+4)
+				newBuffer = buffer[0:idx]
+				newBuffer = append(newBuffer,'p','k','g','s',os.PathSeparator)
+				newBuffer = append(newBuffer, buffer[idx:]...)
+				buffer = newBuffer
+			}
+		}
+	}
 
-	written, err := d.Write(buffer)
-	fileBytesWritten += written
+	_, err = d.Write(buffer)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not write to %s", dest))
-	}
-
-	// makes sure that # of bytes was written/read correctly.
-	if written < readsize {
-		return errors.New(fmt.Sprintf("Not enough bytes written to %s", dest))
-	}
-
-	if readsize < written {
-		return errors.New(fmt.Sprintf("Wrote more bytes than read to %s", dest))
 	}
 	return nil
 }
@@ -305,7 +329,11 @@ func translateFile(source string, dest string) error {
 */
 func convertToLocalPackage(root string, name string) error {
 	fmt.Println("\n\nTransfering GOPATH package [" + name + "] to local use...")
-	err := filepath.Walk(root, convertFileToLocalUse)
+	fmt.Fprintln(os.Stdout, "GOPATH > ", root)
+	curriedConvertFileToLocalUse := func(path string, f os.FileInfo, err error) error {
+		return convertFileToLocalUse(root, path, f, err)
+	}
+	err := filepath.Walk(root+FileSep+name, curriedConvertFileToLocalUse)
 	if err != nil {
 		return err
 	}
@@ -317,8 +345,6 @@ func printOutTransferInformation(name string) {
 	fmt.Fprintln(os.Stdout, "\nTotals")
 	fmt.Fprintln(os.Stdout, "\tDirectories: ", dirCount)
 	fmt.Fprintln(os.Stdout, "\tFiles: ", fileCount)
-	fmt.Fprintln(os.Stdout, "\tBytes Read: ", fileBytesRead)
-	fmt.Fprintln(os.Stdout, "\tBytes Written: ", fileBytesWritten)
 	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \".%spkgs%s%s\"\n\n", FileSep, FileSep, name)
 }
 
