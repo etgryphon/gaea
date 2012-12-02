@@ -195,7 +195,6 @@ func checkIfPackageIsPresent(name string) (doesExist bool, srcPath, formattedPat
 	  srcPath = x+FileSep+"src"
 	  path := x + fmtString + name + FileSep
 	  formattedPath = filepath.FromSlash(path)
-	  fmt.Fprintln(os.Stdout, "dir > ", formattedPath)
 	  there, _ := checkIfPathExists(formattedPath)
 	  if (there) {
 	  	doesExist = true
@@ -232,13 +231,12 @@ func fetchExternalPackage(name string) error {
 	return nil
 }
 
-func convertFileToLocalUse(gopath, path string, f os.FileInfo, err error) error {
+func convertFileToLocalUse(gopath, basePkg, path string, f os.FileInfo, err error) error {
 	base := filepath.Base(path)
 	if base[0] == '.' {
 		return filepath.SkipDir
 	}
 	curDir, _ := os.Getwd()
-	fmt.Fprintln(os.Stdout, "Path >", path)
 	newPath := strings.Replace(path, gopath, curDir+FileSep+"pkgs"+FileSep, -1)
 
 	// Now, check what the item is:
@@ -254,7 +252,7 @@ func convertFileToLocalUse(gopath, path string, f os.FileInfo, err error) error 
 		}
 	} else {
 		fileCount += 1
-		err = translateFile(gopath, path, newPath)
+		err = translateFile(gopath, basePkg, path, newPath)
 	}
 	return nil
 }
@@ -262,7 +260,7 @@ func convertFileToLocalUse(gopath, path string, f os.FileInfo, err error) error 
 /*
 	@private function that will copy and translate files to local use
 */
-func translateFile(gopath, source, dest string) error {
+func translateFile(gopath, basePkg, source, dest string) error {
 	s, err := os.Open(source)
 	if err != nil {
 		return nil
@@ -277,6 +275,7 @@ func translateFile(gopath, source, dest string) error {
 	}
 	sInfo, _ := s.Stat()
 	buffer := make([]byte, sInfo.Size())
+	bufferPtr := &buffer
 
 	_, err = s.Read(buffer)
 	if err != nil {
@@ -296,28 +295,31 @@ func translateFile(gopath, source, dest string) error {
 		}
 	
 		// Print the imports from the file's AST.
-		fmt.Println("File: ", source)
+		
 		
 		for _,s := range f.Imports {
-		  end := len(s.Path.Value)-2
+		  end := len(s.Path.Value)-1
 			pkg := s.Path.Value[1:end]
 			found, srcPath, _ := checkIfPackageIsPresent(pkg)
 			if found {
-				err = convertToLocalPackage(srcPath, pkg)
-				if err != nil {
-					log.Fatalf("Internal Package Conversion Error:\n\t%s", err)
+				fmt.Fprintf(os.Stdout, "\tConverting Internal Import ref of [%s] to [pkgs%s%s]\n", pkg, FileSep, pkg)
+				if (strings.Index(pkg, basePkg) < 0){
+					err = convertToLocalPackage(srcPath, pkg)
+					if err != nil {
+						log.Fatalf("Internal Package Conversion Error:\n\t%s", err)
+					}
 				}
 				idx := bytes.Index(buffer, []byte(pkg))
-				newBuffer := make([]byte, len(buffer)+4)
-				newBuffer = buffer[0:idx]
+				newBuffer := make([]byte, len(*bufferPtr)+5)
+				copy(newBuffer, (*bufferPtr)[0:idx])
 				newBuffer = append(newBuffer,'p','k','g','s',os.PathSeparator)
-				newBuffer = append(newBuffer, buffer[idx:]...)
-				buffer = newBuffer
+				newBuffer = append(newBuffer, (*bufferPtr)[idx:]...)
+				bufferPtr = &newBuffer
 			}
 		}
 	}
 
-	_, err = d.Write(buffer)
+	_, err = d.Write(*bufferPtr)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not write to %s", dest))
 	}
@@ -329,9 +331,8 @@ func translateFile(gopath, source, dest string) error {
 */
 func convertToLocalPackage(root string, name string) error {
 	fmt.Println("\n\nTransfering GOPATH package [" + name + "] to local use...")
-	fmt.Fprintln(os.Stdout, "GOPATH > ", root)
 	curriedConvertFileToLocalUse := func(path string, f os.FileInfo, err error) error {
-		return convertFileToLocalUse(root, path, f, err)
+		return convertFileToLocalUse(root, name, path, f, err)
 	}
 	err := filepath.Walk(root+FileSep+name, curriedConvertFileToLocalUse)
 	if err != nil {
@@ -345,7 +346,7 @@ func printOutTransferInformation(name string) {
 	fmt.Fprintln(os.Stdout, "\nTotals")
 	fmt.Fprintln(os.Stdout, "\tDirectories: ", dirCount)
 	fmt.Fprintln(os.Stdout, "\tFiles: ", fileCount)
-	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \".%spkgs%s%s\"\n\n", FileSep, FileSep, name)
+	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \"pkgs%s%s\"\n\n", FileSep, name)
 }
 
 func runDevelopmentServer(path string) {
