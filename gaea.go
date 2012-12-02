@@ -31,6 +31,7 @@ var versionFlag *bool = flag.Bool("v", false, "Print the version number.")
 
 // Files
 var FileSep = string(os.PathSeparator)
+var LocalPkgs = []byte{'p','k','g','s','/'}
 
 func main() {
 	flag.Parse() // Scan the arguments list 
@@ -295,8 +296,6 @@ func translateFile(gopath, basePkg, source, dest string) error {
 		}
 	
 		// Print the imports from the file's AST.
-		
-		
 		for _,s := range f.Imports {
 		  end := len(s.Path.Value)-1
 			pkg := s.Path.Value[1:end]
@@ -312,8 +311,17 @@ func translateFile(gopath, basePkg, source, dest string) error {
 				idx := bytes.Index(buffer, []byte(pkg))
 				newBuffer := make([]byte, len(*bufferPtr)+5)
 				copy(newBuffer, (*bufferPtr)[0:idx])
-				newBuffer = append(newBuffer,'p','k','g','s',os.PathSeparator)
-				newBuffer = append(newBuffer, (*bufferPtr)[idx:]...)
+				// have to do something special because there is a null term character here
+				// that we have to overwrite before we can continue...
+				l := idx
+				for _, c := range LocalPkgs {
+        	newBuffer[l] = c
+        	l += 1
+        }
+        for _,c := range (*bufferPtr)[idx:]{
+        	newBuffer[l] = c
+        	l += 1
+        }
 				bufferPtr = &newBuffer
 			}
 		}
