@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"go/parser"
 	"go/token"
+	"go/ast"
 	"bytes"
 )
 
@@ -266,12 +267,10 @@ func translateFile(gopath, basePkg, source, dest string) error {
 	if err != nil {
 		return nil
 	}
+	
+	// Check the destination is valid
 	_, e := os.Stat(dest)
 	if e == nil {
-		return nil
-	}
-	d, err := os.Create(dest)
-	if err != nil {
 		return nil
 	}
 	sInfo, _ := s.Stat()
@@ -282,15 +281,35 @@ func translateFile(gopath, basePkg, source, dest string) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not write read from %s", source))
 	}
-	
   // If it is a go file then we have to re-write the imports to 
   // have the correct '/pkg' prefix
 	if (filepath.Ext(source) == ".go"){
 		fset := token.NewFileSet()	// positions are relative to fset
+		
+		f, err := parser.ParseFile(fset, "", buffer, parser.PackageClauseOnly)
+		if err != nil {
+			fmt.Println(err)
+		}
+		
+		// Identify the packages
+		var pkgName string
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch x := n.(type) {
+			case *ast.Ident:
+				pkgName = x.Name
+				break
+			}
+			return true
+		})
+		
+		baseName := filepath.Base(basePkg)
+		if (pkgName != baseName){
+			return nil
+		} 
 	
 		// Parse the file containing this very example
 		// but stop after processing the imports.
-		f, err := parser.ParseFile(fset, "", buffer, parser.ImportsOnly)
+		f, err = parser.ParseFile(fset, "", buffer, parser.ImportsOnly)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -302,11 +321,9 @@ func translateFile(gopath, basePkg, source, dest string) error {
 			found, srcPath, _ := checkIfPackageIsPresent(pkg)
 			if found {
 				fmt.Fprintf(os.Stdout, "\tConverting Internal Import ref of [%s] to [pkgs%s%s]\n", pkg, FileSep, pkg)
-				if (strings.Index(pkg, basePkg) < 0){
-					err = convertToLocalPackage(srcPath, pkg)
-					if err != nil {
-						log.Fatalf("Internal Package Conversion Error:\n\t%s", err)
-					}
+				err = convertToLocalPackage(srcPath, pkg)
+				if err != nil {
+					log.Fatalf("Internal Package Conversion Error:\n\t%s", err)
 				}
 				idx := bytes.Index(buffer, []byte(pkg))
 				newBuffer := make([]byte, len(*bufferPtr)+5)
@@ -325,6 +342,13 @@ func translateFile(gopath, basePkg, source, dest string) error {
 				bufferPtr = &newBuffer
 			}
 		}
+	}
+	
+	// If we have gotten here, we know that we have a valid item in a package and can 
+	// create and write to the file.
+	d, err := os.Create(dest)
+	if err != nil {
+		return nil
 	}
 
 	_, err = d.Write(*bufferPtr)
