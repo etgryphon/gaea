@@ -23,7 +23,6 @@ const APP_VERSION = "0.1"
 const inputDelim = '\n'
 
 var fileCount int = 0
-var dirCount int = 0
 var fileBytesRead int = 0
 var fileBytesWritten int = 0
 
@@ -246,13 +245,7 @@ func convertFileToLocalUse(gopath, basePkg, path string, f os.FileInfo, err erro
 	if err != nil {
 		return filepath.SkipDir
 	}
-	if info.IsDir() {
-		dirCount += 1
-		err = os.MkdirAll(newPath, 0755)
-		if err != nil {
-			return filepath.SkipDir
-		}
-	} else {
+	if !(info.IsDir()) {
 		fileCount += 1
 		err = translateFile(gopath, basePkg, path, newPath)
 	}
@@ -346,6 +339,8 @@ func translateFile(gopath, basePkg, source, dest string) error {
 	
 	// If we have gotten here, we know that we have a valid item in a package and can 
 	// create and write to the file.
+	os.MkdirAll(filepath.Dir(dest), 0755)
+	
 	d, err := os.Create(dest)
 	if err != nil {
 		return nil
@@ -376,7 +371,6 @@ func convertToLocalPackage(root string, name string) error {
 
 func printOutTransferInformation(name string) {
 	fmt.Fprintln(os.Stdout, "\nTotals")
-	fmt.Fprintln(os.Stdout, "\tDirectories: ", dirCount)
 	fmt.Fprintln(os.Stdout, "\tFiles: ", fileCount)
 	fmt.Fprintf(os.Stdout, "\nTo Use it in your Google App Engine program:\n\n\timport \"pkgs%s%s\"\n\n", FileSep, name)
 }
